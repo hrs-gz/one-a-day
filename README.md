@@ -41,6 +41,21 @@ Dashboard: http://localhost:5173
 python -m scheduler.daily_job --force
 ```
 
+
+## Agentic roadmap
+
+A proposed agentic architecture plan and starter configuration files are included:
+
+- `docs/agentic-architecture-plan.md`
+- `config/models.yaml`
+- `config/agents.yaml`
+
+These provide a phased migration path from the current deterministic pipeline to an evidence-gated agentic pipeline.
+
+## GitHub Codespaces
+
+This repo now includes `.devcontainer/devcontainer.json` for quick startup in Codespaces with Python 3.11 + Node 20 and preconfigured forwarded ports (`8000`, `5173`).
+
 ## Architecture
 
 ```

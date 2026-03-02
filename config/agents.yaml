@@ -1,0 +1,101 @@
+agents:
+  query_builder:
+    model_ref: cheap
+    output_schema: CandidateQueryPack
+    rules:
+      - "Return only queries + optional domain filters."
+      - "No prose."
+
+  verifier_extractor:
+    model_ref: verifier
+    output_schema: VerifiedLeadBundle
+    rules:
+      - "Every fact must include {url, excerpt}."
+      - "If a fact cannot be verified, omit it."
+
+  card_writer:
+    model_ref: writer
+    output_schema: ScoringCard
+    rules:
+      - "Use only VerifiedLeadBundle.facts."
+      - "No outreach copy. No email drafting."
+
+  planner:
+    model_ref: planner
+    output_schema: DailyRunPlan
+    rules:
+      - "Choose source packs + constraints for today."
+
+  selector:
+    model_ref: null
+    deterministic: true
+    rules:
+      - "Apply score breakdown + diversity constraints."
+
+  availability:
+    model_ref: null
+    deterministic: true
+    rules:
+      - "Read-only calendar → propose windows with rationale."
+
+schemas:
+  CandidateQueryPack:
+    fields:
+      queries:
+        - q: string
+          recency_days: int|null
+          allow_domains: [string]|null
+          deny_domains: [string]|null
+
+  VerifiedLeadBundle:
+    fields:
+      identity:
+        name: string|null
+        role: string|null
+        org: string|null
+      urls: [string]
+      facts:
+        - fact: string
+          url: string
+          excerpt: string
+      contact_paths:
+        - type: string
+          url: string
+          excerpt: string
+
+  ScoringCard:
+    fields:
+      lead:
+        name: string
+        role: string
+        org: string
+        primary_url: string
+        tags: [string]
+      score:
+        total: int
+        breakdown:
+          relevance: int
+          novelty: int
+          authority: int
+          reachability: int
+          timeliness: int
+          diversity: int
+      why_relevant: [string]
+      evidence:
+        - excerpt: string
+          url: string
+      questions:
+        - q: string
+          why: string
+          linked_fact_urls: [string]
+      research_tasks:
+        - task: string
+          expected_find: string
+
+  DailyRunPlan:
+    fields:
+      leads_per_day: int
+      source_packs: [string]
+      constraints:
+        max_per_org: int
+        min_topic_clusters: int
