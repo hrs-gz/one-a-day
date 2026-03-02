@@ -61,15 +61,20 @@ const rowStyle: React.CSSProperties = {
   display: "flex",
   gap: "1rem",
   alignItems: "stretch",
-  padding: "0 1rem",
+  justifyContent: "center",
+  flexWrap: "wrap",
+  padding: "0 2rem",
+  maxWidth: "1200px",
+  width: "100%",
+  margin: "0 auto",
 };
 
 function SkeletonCard() {
   return (
     <div
       style={{
-        flex: 1,
-        minWidth: 0,
+        flex: "1 1 300px",
+        maxWidth: "400px",
         backgroundColor: "var(--paper-cream)",
         borderRadius: "var(--radius-lg)",
         boxShadow: "var(--shadow-card)",
@@ -92,8 +97,8 @@ function EmptyCard() {
   return (
     <div
       style={{
-        flex: 1,
-        minWidth: 0,
+        flex: "1 1 300px",
+        maxWidth: "400px",
         backgroundColor: "var(--paper-cream)",
         borderRadius: "var(--radius-lg)",
         boxShadow: "var(--shadow-card)",

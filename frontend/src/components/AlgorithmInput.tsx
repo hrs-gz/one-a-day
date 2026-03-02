@@ -83,23 +83,9 @@ export function AlgorithmInput() {
         style={{
           display: "flex",
           alignItems: "center",
-          justifyContent: "space-between",
+          justifyContent: "flex-end",
         }}
       >
-        {/* Icon row — display only in v1 */}
-        <div
-          style={{
-            display: "flex",
-            gap: "1rem",
-            fontSize: "1rem",
-            color: "var(--ink-faint)",
-          }}
-        >
-          <span title="Attach image">🖼</span>
-          <span title="Code snippet">&lt;/&gt;</span>
-          <span title="Voice input">🎤</span>
-        </div>
-
         {/* Submit */}
         <button
           onClick={handleSubmit}

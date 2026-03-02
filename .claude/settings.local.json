@@ -1,106 +1,63 @@
 {
-  "$schema": "https://json.schemastore.org/claude-code-settings.json",
-
   "defaultMode": "acceptEdits",
-
   "permissions": {
     "deny": [
-      "Read(./.env)",
-      "Read(./.env.*)",
+      "Read(./.env*)",
       "Read(./secrets/**)",
-      "Read(**/*secret*)",
-      "Read(**/*credential*)",
-      "Read(**/*private_key*)",
-      "Read(**/*id_rsa*)",
       "Read(~/.ssh/**)",
       "Read(~/.aws/**)",
       "Read(~/.config/gcloud/**)",
       "Read(~/.kube/**)",
-
-      "Bash(rm -rf *)",
       "Bash(sudo *)",
-      "Bash(chmod *777*)",
-      "Bash(chown *)",
-      "Bash(mkfs.*)",
-      "Bash(dd *)",
-      "Bash(:(){:|:&};:)",
-
+      "Bash(rm -rf *)",
       "Bash(curl *)",
       "Bash(wget *)",
       "Bash(nc *)",
-      "Bash(netcat *)",
       "Bash(ssh *)",
-      "Bash(scp *)",
-      "Bash(rsync *://*)"
+      "Bash(scp *)"
     ],
-
     "ask": [
       "Bash(git commit*)",
-      "Bash(git tag*)",
       "Bash(git push*)",
       "Bash(git pull*)",
       "Bash(git rebase*)",
       "Bash(git reset --hard*)",
       "Bash(git clean -fd*)",
-
-      "Bash(docker *)",
-      "Bash(kubectl *)",
-      "Bash(terraform *)",
-      "Bash(aws *)",
-      "Bash(gcloud *)",
-
       "Bash(pip install*)",
       "Bash(uv pip install*)",
       "Bash(npm publish*)",
       "Bash(pnpm publish*)",
-      "Bash(yarn publish*)"
+      "Bash(yarn publish*)",
+      "Bash(docker *)",
+      "Bash(kubectl *)",
+      "Bash(terraform *)",
+      "Bash(aws *)",
+      "Bash(gcloud *)"
     ],
-
     "allow": [
-      "Bash(pwd)",
       "Bash(ls*)",
       "Bash(find .*)",
       "Bash(tree*)",
-
+      "Bash(rg *)",
+      "Bash(grep *)",
       "Bash(git status*)",
       "Bash(git diff*)",
       "Bash(git log*)",
       "Bash(git show*)",
-      "Bash(git rev-parse*)",
-      "Bash(git branch*)",
-      "Bash(git checkout -- *)",
-
       "Bash(make *)",
       "Bash(just *)",
-
-      "Bash(python -V)",
-      "Bash(python --version)",
-      "Bash(python -m pytest*)",
       "Bash(pytest*)",
+      "Bash(python -m pytest*)",
       "Bash(uv run pytest*)",
-
-      "Bash(pnpm -v)",
-      "Bash(npm -v)",
-      "Bash(node -v)",
-
-      "Bash(pnpm install*)",
       "Bash(npm ci*)",
       "Bash(npm install*)",
-
-      "Bash(pnpm run lint*)",
-      "Bash(npm run lint*)",
-      "Bash(pnpm run test*)",
-      "Bash(npm run test*)",
-      "Bash(pnpm run build*)",
-      "Bash(npm run build*)",
-
+      "Bash(pnpm install*)",
+      "Bash(pnpm run *)",
+      "Bash(npm run *)",
       "Bash(prettier *)",
       "Bash(eslint *)",
       "Bash(ruff *)",
-      "Bash(black *)",
-
-      "Bash(rg *)",
-      "Bash(grep *)"
+      "Bash(black *)"
     ]
   }
 }

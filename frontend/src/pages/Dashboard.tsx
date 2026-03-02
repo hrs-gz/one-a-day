@@ -37,6 +37,7 @@ export function Dashboard() {
           flex: 1,
           display: "flex",
           alignItems: "center",
+          justifyContent: "center",
           overflow: "hidden",
           padding: "1.5rem 0",
         }}

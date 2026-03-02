@@ -65,7 +65,7 @@ def _extract_keywords_openrouter(text: str, api_key: str) -> list[str]:
                 "Content-Type": "application/json",
             },
             json={
-                "model": "mistralai/mistral-7b-instruct:free",
+                "model": settings.openrouter_model,
                 "messages": [
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": text},

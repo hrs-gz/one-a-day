@@ -5,13 +5,15 @@ import {
   getInterests,
   updateInterest,
 } from "../api/interests";
-import { getSources, toggleSource } from "../api/sources";
+import { createSource, deleteSource, getSources, toggleSource, updateSource } from "../api/sources";
 import type {
   CreateInterestPayload,
+  CreateSourcePayload,
   InterestConfig,
   PaginatedResponse,
   ScraperSource,
   UpdateInterestPayload,
+  UpdateSourcePayload,
 } from "../types";
 
 // ---------------------------------------------------------------------------
@@ -83,6 +85,36 @@ export function useToggleSource() {
   const queryClient = useQueryClient();
   return useMutation<ScraperSource, Error, { id: number; enabled: boolean }>({
     mutationFn: ({ id, enabled }) => toggleSource(id, enabled),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: sourceKeys.lists() });
+    },
+  });
+}
+
+export function useCreateSource() {
+  const queryClient = useQueryClient();
+  return useMutation<ScraperSource, Error, CreateSourcePayload>({
+    mutationFn: createSource,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: sourceKeys.lists() });
+    },
+  });
+}
+
+export function useUpdateSource() {
+  const queryClient = useQueryClient();
+  return useMutation<ScraperSource, Error, { id: number; payload: UpdateSourcePayload }>({
+    mutationFn: ({ id, payload }) => updateSource(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: sourceKeys.lists() });
+    },
+  });
+}
+
+export function useDeleteSource() {
+  const queryClient = useQueryClient();
+  return useMutation<void, Error, number>({
+    mutationFn: deleteSource,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: sourceKeys.lists() });
     },

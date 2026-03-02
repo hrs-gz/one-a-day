@@ -1,13 +1,17 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 
 
 class Settings(BaseSettings):
     """Application settings loaded from environment / .env file."""
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=str(_PROJECT_ROOT / ".env"),
         env_file_encoding="utf-8",
         case_sensitive=False,
     )
@@ -19,6 +23,7 @@ class Settings(BaseSettings):
     scraper_user_agent: str = "OneADay/1.0 (+https://yoursite.com/bot-info)"
     openai_api_key: str | None = None
     openrouter_api_key: str | None = None
+    openrouter_model: str = "mistralai/mistral-small-3.1-24b-instruct:free"
     sentry_dsn: str | None = None
 
     @property
