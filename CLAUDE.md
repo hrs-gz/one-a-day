@@ -2,9 +2,9 @@
 
 ## Project Purpose
 
-One-A-Day scrapes the web daily to surface one interesting person as a contact lead. The target is people worth knowing — academics doing unusual research, professionals working on something niche, local operators, independent thinkers — found across university faculty pages, company team pages, news headlines, personal websites, and local newspapers.
+One-A-Day uses an agent-driven pipeline to surface up to 3 ranked contact leads per day. The target is people worth knowing — academics doing unusual research, professionals working on something niche, local operators, independent thinkers.
 
-The user configures interests (keywords + weights) through a web dashboard. Each day a scheduler runs the full pipeline: scrape enabled sources → collect candidates → score against interests → select one winner → store it. The dashboard shows today's lead and a browsable history.
+The user configures interests (keywords + weights) through a web dashboard. Each day a scheduler runs the agentic pipeline: a Planner agent chooses sources and constraints, a Query Builder generates structured search queries, a Candidate Gatherer fetches and deduplicates URLs, a Verifier/Extractor agent emits only evidence-backed facts (every fact carries a source URL and verbatim excerpt), a Card Writer scores each candidate across multiple dimensions, and a Deterministic Selector picks the top 1–3 leads. The dashboard shows today's ranked leads and a browsable history. Voting on a lead feeds back into interest weights.
 
 ## Requirements
 
@@ -14,28 +14,33 @@ The user configures interests (keywords + weights) through a web dashboard. Each
 
 ## Architecture Overview
 ```
-[scheduler/daily_job.py]           runs on cron or manually with --force
+[scheduler/daily_job.py]              runs on cron or manually with --force
         |
         v
-[app/services/scrape_service.py]   orchestrates all enabled scrapers
+[app/services/agentic_pipeline_service.py]   orchestrates agent chain (Phase 1+)
         |
-        +--> [app/scrapers/*.py]   each extends BaseScraper
-        |
-        v  (list of CandidateLead dataclasses)
-[app/services/lead_service.py]     scores + deduplicates + selects winner
-        |
-        v
-[SQLite DB via SQLAlchemy]         persists Lead for the day
-        |
-        v
-[FastAPI backend — /api/v1/]       REST API
+        +---> [Planner Agent]            → DailyRunPlan (source packs, constraints)
+        +---> [Query Builder Agent]      → CandidateQueryPack (structured search queries)
+        +---> [Candidate Gatherer]       → deduplicated URLs
+        +---> [Verifier/Extractor Agent] → VerifiedLeadBundle (facts w/ url+excerpt)
+        +---> [Card Writer Agent]        → ScoringCard (relevance, novelty, authority…)
+        +---> [Deterministic Selector]   → top 1–3 ranked leads
         |
         v
-[React + TypeScript frontend]      SPA at localhost:5173
-        ├── Dashboard (today's lead)
+[SQLite DB via SQLAlchemy]            persists up to 3 Leads per day (rank 1–3)
+        |
+        v
+[FastAPI backend — /api/v1/]          REST API
+        |
+        v
+[React + TypeScript frontend]         SPA at localhost:5173
+        ├── Dashboard (today's ranked leads)
         ├── History (past leads)
-        └── Settings (interests, scraper sources)
+        ├── Settings (interests, scraper sources)
+        └── Algorithm (interest tag cloud + NL bulk input)
 ```
+
+Classic scraper pipeline (`PIPELINE_MODE=classic`): `scrape_service.py` → `app/scrapers/*.py` → `lead_service.py`. Used for local development without LLM keys.
 
 ### Backend (`backend/`)
 
@@ -48,7 +53,7 @@ The user configures interests (keywords + weights) through a web dashboard. Each
 ### Frontend (`frontend/`)
 
 - Vite + React 18 + TypeScript (strict mode)
-- Three pages: Dashboard, History, Settings
+- Four pages: Dashboard, History, Settings, Algorithm
 - All API calls go through typed functions in `src/api/`
 - Server state via TanStack Query v5 — no Redux/Zustand in v1
 
@@ -73,7 +78,8 @@ alembic upgrade head
 alembic revision --autogenerate -m "describe change"
 
 # Run pipeline manually (ignores existing lead for today)
-python -m scheduler.daily_job --force
+# NOTE: run from repo root, not backend/
+cd .. && python -m scheduler.daily_job --force
 
 # Test
 pytest
@@ -108,6 +114,13 @@ oad/
 ├── .gitignore
 ├── README.md
 │
+├── config/
+│   ├── models.yaml               # LLM provider + model assignments per agent role
+│   └── agents.yaml               # Agent rules + IO schema contracts
+│
+├── docs/
+│   └── agentic-architecture-plan.md
+│
 ├── backend/
 │   ├── pyproject.toml
 │   ├── alembic.ini
@@ -119,6 +132,14 @@ oad/
 │   │   ├── config.py
 │   │   ├── database.py
 │   │   ├── exceptions.py         # Domain exceptions
+│   │   ├── agents/               # [Phase 1 — in progress]
+│   │   │   ├── planner.py
+│   │   │   ├── query_builder.py
+│   │   │   ├── verifier_extractor.py
+│   │   │   └── card_writer.py
+│   │   ├── llm/                  # [Phase 1 — in progress]
+│   │   │   ├── openrouter_client.py
+│   │   │   └── gemini_client.py
 │   │   ├── models/
 │   │   │   ├── lead.py
 │   │   │   ├── interest_config.py
@@ -126,21 +147,25 @@ oad/
 │   │   ├── schemas/
 │   │   │   ├── lead.py
 │   │   │   ├── interest_config.py
-│   │   │   └── scraper_source.py
+│   │   │   ├── scraper_source.py
+│   │   │   └── agent_contracts.py  # [Phase 1 — in progress]
 │   │   ├── routers/
 │   │   │   ├── leads.py
 │   │   │   ├── interests.py
 │   │   │   └── sources.py
 │   │   ├── services/
 │   │   │   ├── lead_service.py
-│   │   │   └── scrape_service.py
-│   │   └── scrapers/
+│   │   │   ├── scrape_service.py
+│   │   │   └── agentic_pipeline_service.py  # [Phase 1 — in progress]
+│   │   └── scrapers/             # Classic pipeline (PIPELINE_MODE=classic)
 │   │       ├── base.py
 │   │       ├── university.py
 │   │       ├── company.py
 │   │       ├── news.py
 │   │       ├── personal_site.py
-│   │       └── local_news.py
+│   │       ├── local_news.py
+│   │       ├── rss.py
+│   │       └── substack.py
 │   └── tests/
 │       ├── conftest.py
 │       ├── fixtures/
@@ -150,13 +175,15 @@ oad/
 │       │       └── university_page.html
 │       ├── test_routers/
 │       │   ├── test_leads.py
-│       │   └── test_interests.py
+│       │   ├── test_interests.py
+│       │   └── test_sources.py
 │       ├── test_services/
 │       │   ├── test_lead_service.py
 │       │   └── test_scrape_service.py
 │       └── test_scrapers/
 │           ├── test_university.py
-│           └── test_base.py
+│           ├── test_base.py
+│           └── ...               # One file per scraper
 │
 ├── frontend/
 │   ├── package.json
@@ -165,6 +192,7 @@ oad/
 │   ├── eslint.config.js
 │   ├── .prettierrc
 │   ├── index.html
+│   ├── DESIGN.md
 │   └── src/
 │       ├── main.tsx
 │       ├── App.tsx
@@ -182,9 +210,10 @@ oad/
 │       │   ├── SourceToggle.tsx
 │       │   └── Layout.tsx
 │       ├── pages/
-│       │   ├── Dashboard.tsx
+│       │   ├── Dashboard.tsx     # 3-card layout for ranked leads
 │       │   ├── History.tsx
-│       │   └── Settings.tsx
+│       │   ├── Settings.tsx
+│       │   └── Algorithm.tsx     # Interest tag cloud + NL bulk input
 │       ├── hooks/
 │       │   ├── useLeads.ts
 │       │   └── useInterests.ts
@@ -455,16 +484,22 @@ All checks must pass before merge:
 ```python
 class Lead(Base):
     id: int                      # PK
-    date: date                   # UNIQUE — one lead per calendar day
+    date: date                   # Part of composite unique constraint
+    rank: int                    # 1–3; rank 1 = best match; UNIQUE(date, rank)
     name: str
     title: str                   # Role or job title
     affiliation: str             # Employer, university, publication, etc.
     url: str                     # Source URL where they were found
     summary: str                 # 1–3 sentence description
-    source_type: str             # "university" | "company" | "news" | "personal" | "local_news"
+    source_type: str             # "university"|"company"|"news"|"personal"|"local_news"|"rss"|"substack"
     contact_hint: str | None     # LinkedIn URL, email format guess, or None
+    favorited: bool              # default False
+    vote: int                    # -1 (down), 0 (neutral), 1 (up); default 0
+    matched_interests: str       # JSON string of InterestConfig IDs e.g. "[1, 3]"
     created_at: datetime         # UTC
 ```
+
+Up to 3 leads are stored per day. The uniqueness constraint is `UNIQUE(date, rank)`, not `UNIQUE(date)`.
 
 ### InterestConfig (`models/interest_config.py`)
 ```python
@@ -522,15 +557,16 @@ class CandidateLead:
     source_type: SourceType      # Literal type
     contact_hint: str | None = None
 
-SourceType = Literal["university", "company", "news", "personal", "local_news"]
+SourceType = Literal["university", "company", "news", "personal", "local_news", "rss", "substack"]
 ```
 
 ### Lead Field Generation
 
 | Field | Source |
 |-------|--------|
-| `summary` | `lead_service.generate_summary()` — V1: first 2 sentences containing person's name. Future: LLM if `OPENAI_API_KEY` set. |
-| `contact_hint` | Extracted by scraper from `mailto:` href or LinkedIn link. Falls back to `None`. |
+| `summary` | `lead_service.generate_summary()` — first 2 sentences containing person's name. Agentic pipeline: Card Writer agent writes a structured summary from `VerifiedLeadBundle`. |
+| `contact_hint` | Extracted by scraper (classic) or from `VerifiedLeadBundle.contact_paths` (agentic). Falls back to `None`. |
+| `matched_interests` | JSON array of `InterestConfig` IDs whose keywords matched during scoring. Used by voting to adjust weights. |
 
 ## Environment Variables
 
@@ -541,11 +577,17 @@ CORS_ORIGINS=http://localhost:5173
 LOG_LEVEL=INFO
 SCRAPE_RATE_LIMIT_SECONDS=2
 SCRAPER_USER_AGENT=OneADay/1.0 (+https://yoursite.com/bot-info)
+PIPELINE_MODE=agentic           # "agentic" (default) | "classic" (legacy scraper pipeline)
+```
+
+Required for agentic pipeline:
+```
+OPENROUTER_API_KEY=             # Used by planner, query_builder, card_writer agents (free tier works)
+GEMINI_API_KEY=                 # Used by verifier_extractor agent (free tier works)
 ```
 
 Optional:
 ```
-OPENAI_API_KEY=                 # LLM summarization (future)
 SENTRY_DSN=                     # Error tracking (production)
 ```
 
@@ -581,7 +623,10 @@ class ScraperError(OADError):
 @router.post("/leads/generate", status_code=201)
 def generate_lead(db: Session = Depends(get_db)):
     try:
-        return lead_service.run_pipeline(db)
+        candidates = scrape_service.run_all_scrapers(db)
+        interests = lead_service.get_active_interests(db)
+        top = lead_service.select_top_candidates(candidates, interests, n=3)
+        return lead_service.create_leads_from_candidates(db, top, interests)
     except LeadExistsError:
         raise HTTPException(status_code=409, detail="Lead already exists for today")
 ```
@@ -657,6 +702,12 @@ def score_candidate(candidate: CandidateLead, interests: list[InterestConfig]) -
     """Returns 0–100. Keyword overlap weighted by interest.weight."""
 ```
 
+Classic pipeline scoring: keyword overlap against active interests, weighted 0–1.
+
+Agentic pipeline scoring: Card Writer produces a `ScoringCard` with six explicit dimensions — relevance, novelty, authority, reachability, timeliness, diversity — summed to a 0–100 total.
+
+**Voting feedback loop**: Upvoting a lead (`vote=1`) adds `+0.1` to each matched interest's weight (clamped to 1.0). Downvoting (`vote=-1`) subtracts `0.1` (clamped to 0.0). Matched interest IDs are stored in `Lead.matched_interests` as a JSON array and adjusted in `PATCH /api/v1/leads/{id}/vote`.
+
 ### Thin Routers
 
 Routers: validate → call service → return schema. No ORM queries. No business logic.
@@ -667,12 +718,47 @@ Routers: validate → call service → return schema. No ORM queries. No busines
 - Single: flat object
 - Error: `{ "detail": "message" }`
 
+### API Reference — Leads
+
+| Method | Path | Description | Status codes |
+|--------|------|-------------|-------------|
+| GET | `/api/v1/leads/today` | Today's rank-1 lead | 200, 404 |
+| GET | `/api/v1/leads/by-date/{date}` | All leads for YYYY-MM-DD, ordered by rank; `[]` if none | 200 |
+| GET | `/api/v1/leads?skip&limit&source_type` | Paginated list, newest first | 200 |
+| GET | `/api/v1/leads/{id}` | Single lead by ID | 200, 404 |
+| POST | `/api/v1/leads/generate` | Trigger pipeline for today; returns up to 3 leads | 201, 409, 422 |
+| PATCH | `/api/v1/leads/{id}/vote` | `{vote: -1|0|1}`; adjusts matched interest weights ±0.1 | 200, 404, 422 |
+| PATCH | `/api/v1/leads/{id}/favorite` | `{favorited: bool}` | 200, 404 |
+
+## Agent Contracts
+
+Agent IO is defined in `config/agents.yaml` and will be validated by `app/schemas/agent_contracts.py` (Phase 1).
+
+| Agent | Output schema | Key rule |
+|-------|--------------|----------|
+| Planner | `DailyRunPlan` | Choose source packs + constraints for today |
+| Query Builder | `CandidateQueryPack` | Structured queries only — no prose |
+| Verifier/Extractor | `VerifiedLeadBundle` | Every fact must carry `{url, excerpt}` — omit unverifiable facts |
+| Card Writer | `ScoringCard` | Use only `VerifiedLeadBundle.facts` — no outreach copy |
+| Selector | deterministic | Apply score breakdown + diversity constraints (`max_per_org`, `min_topic_clusters`) |
+
+**`VerifiedLeadBundle`** fields: `identity {name, role, org}`, `urls[]`, `facts[{fact, url, excerpt}]`, `contact_paths[{type, url, excerpt}]`
+
+**`ScoringCard`** score breakdown: `relevance`, `novelty`, `authority`, `reachability`, `timeliness`, `diversity` (each 0–100, summed to total)
+
+LLM models are assigned per role in `config/models.yaml`:
+- `planner`: `arcee-ai/trinity-large-preview:free` via OpenRouter
+- `writer`: `meta-llama/llama-3.3-70b-instruct:free` via OpenRouter
+- `cheap` (query builder): `liquid/lfm-2.5-1.2b-thinking:free` via OpenRouter
+- `verifier`: `gemini-2.5-flash-lite` via Gemini
+
 ## Important Constraints
 
 - **Never commit `.env`** or files containing secrets
 - **Never call HTTP directly in scrapers** — use `self._get()`
 - **Never bypass rate limiting** or robots.txt
-- **Never store >1 lead per day** — unique constraint on `Lead.date`
+- **Never store >3 leads per day** — unique constraint on `(Lead.date, Lead.rank)`; ranks 1–3 only
+- **Evidence gating**: Verifier agent must omit any fact it cannot support with a source URL and verbatim excerpt — never fabricate
 - **Never store raw HTML** or full page text in DB
 - **Never store excess PII** — name, title, affiliation, URL, contact hint only
 - **Never access DB inside scrapers** — stateless, config in, dataclasses out
@@ -683,6 +769,7 @@ Routers: validate → call service → return schema. No ORM queries. No busines
 - **Never push to main** — use branches
 - **All datetimes UTC** in database
 - **Scheduler must be idempotent** — check for existing lead before running
+- **`PIPELINE_MODE`**: set to `classic` only for local testing without LLM keys; `agentic` is the production default
 
 ## Production Checklist
 
@@ -691,22 +778,33 @@ Items to complete before the app is production-ready. Check off as you go.
 ### Database
 | Item | Status |
 |------|--------|
-| Generate initial Alembic migration (`alembic revision --autogenerate -m "initial schema"`) | ⬜ |
+| Generate initial Alembic migration (`alembic revision --autogenerate -m "initial schema"`) | ✅ |
 | Run migration on prod DB (`alembic upgrade head`) | ⬜ |
 | Consider Postgres for multi-user / high-volume (SQLite fine for single-user) | ⬜ optional |
 
 ### Backend Config
 | Item | Status |
 |------|--------|
-| Create `.env.example` (template of all env vars, no secrets) | ⬜ |
+| Create `.env.example` (template of all env vars, no secrets) | ✅ |
 | Set `SCRAPER_USER_AGENT` to a real domain with bot info URL | ⬜ |
 | Set `CORS_ORIGINS` to your actual frontend origin | ⬜ |
 | Set `LOG_LEVEL=INFO` in production | ⬜ |
 
+### Agentic Pipeline
+| Item | Status |
+|------|--------|
+| Add `config/models.yaml` and `config/agents.yaml` | ✅ |
+| Implement `backend/app/agents/` (planner, query_builder, verifier_extractor, card_writer) | ⬜ Phase 1 |
+| Implement `backend/app/llm/` (openrouter_client, gemini_client) | ⬜ Phase 1 |
+| Add `backend/app/schemas/agent_contracts.py` (Pydantic IO validation) | ⬜ Phase 1 |
+| Implement `backend/app/services/agentic_pipeline_service.py` orchestrator | ⬜ Phase 2 |
+| Wire `PIPELINE_MODE` feature flag into scheduler | ⬜ Phase 2 |
+| Add evidence-gating contract tests | ⬜ Phase 6 |
+
 ### Pre-commit & CI
 | Item | Status |
 |------|--------|
-| Create `.pre-commit-config.yaml` (ruff + detect-secrets) | ⬜ |
+| Create `.pre-commit-config.yaml` (ruff + detect-secrets) | ✅ |
 | Run `pre-commit install` after cloning | ⬜ |
 | Confirm CI passes: `pytest --cov-fail-under=80`, `ruff check`, `npm run test`, `npm run lint` | ⬜ |
 
@@ -720,8 +818,8 @@ Items to complete before the app is production-ready. Check off as you go.
 ### Frontend
 | Item | Status |
 |------|--------|
-| Drop design file in `frontend/DESIGN.md` and implement UI | ⬜ |
-| Add error boundaries around Dashboard, History, Settings | ⬜ |
+| Drop design file in `frontend/DESIGN.md` and implement UI | ✅ |
+| Add error boundaries around Dashboard, History, Settings, Algorithm | ⬜ |
 | Run `npm run build` — confirm clean TypeScript + Vite build | ⬜ |
 | Decide on serving: FastAPI `StaticFiles` mount or separate CDN | ⬜ |
 
