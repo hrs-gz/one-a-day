@@ -1,0 +1,5 @@
+[
+  {"keyword": "urban planning", "weight": 1.0, "active": true},
+  {"keyword": "computational biology", "weight": 0.8, "active": true},
+  {"keyword": "machine learning", "weight": 0.5, "active": false}
+]

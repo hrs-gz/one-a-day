@@ -1,0 +1,82 @@
+/* ============================================================
+   Design Tokens — Paper Theme
+   ============================================================ */
+:root {
+  /* Base paper tones */
+  --paper-white: #faf9f6;
+  --paper-cream: #f5f3ee;
+  --paper-tan: #ebe7df;
+  --paper-kraft: #d9d3c7;
+
+  /* Ink tones */
+  --ink-black: #2c2c2c;
+  --ink-gray: #5c5c5c;
+  --ink-light: #8c8c8c;
+  --ink-faint: #b5b5b5;
+
+  /* Accent — muted green */
+  --accent: #4e6c4e;
+  --accent-soft: #b2dfa1;
+  --accent-bg: #f0edf5;
+
+  /* Feedback */
+  --upvote: #5a7c5a;
+  --downvote: #9c6b6b;
+
+  /* Elevation */
+  --shadow-card: 0 1px 3px rgba(44, 44, 44, 0.08);
+  --shadow-hover: 0 3px 8px rgba(44, 44, 44, 0.12);
+  --shadow-picker: 0 4px 16px rgba(44, 44, 44, 0.15);
+
+  /* Radii */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  /* Typography */
+  --font-display: 'Instrument Serif', Georgia, serif;
+  --font-body: 'Inter', -apple-system, sans-serif;
+}
+
+/* ============================================================
+   Global Reset
+   ============================================================ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink-black);
+  background-color: var(--paper-white);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}

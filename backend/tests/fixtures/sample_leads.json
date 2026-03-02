@@ -1,0 +1,20 @@
+[
+  {
+    "name": "Dr. Jane Smith",
+    "title": "Associate Professor",
+    "affiliation": "MIT",
+    "url": "https://mit.edu/faculty/jsmith",
+    "summary": "Researches urban planning. Jane Smith leads the Urban Futures Lab.",
+    "source_type": "university",
+    "contact_hint": "https://linkedin.com/in/jsmith"
+  },
+  {
+    "name": "Dr. Alan Torres",
+    "title": "Senior Researcher",
+    "affiliation": "Stanford",
+    "url": "https://stanford.edu/~atorres",
+    "summary": "Alan Torres works on computational biology and protein folding.",
+    "source_type": "university",
+    "contact_hint": null
+  }
+]

@@ -1,0 +1,264 @@
+# One-A-Day — Project Rules
+
+## Python
+
+### Style
+
+- Formatter: `ruff format` (line length 88)
+- Linter: `ruff check` — rule sets: E, F, I, UP, B
+- Type hints required on all function signatures
+- Use `from __future__ import annotations` in all modules
+- Import order: stdlib → third-party → local (blank line between)
+- Use `pathlib.Path`, not `os.path`
+- f-strings only
+- No mutable default arguments
+- Prefer `httpx` over `requests`; `requests` banned in scrapers
+
+### Docstrings
+
+- Required on public functions and classes
+- Google style
+- One-liner for simple functions; multi-line for complex logic
+- Skip on private methods unless non-obvious
+
+## TypeScript
+
+### Style
+
+- ESLint + Prettier (config in `eslint.config.js`, `.prettierrc`)
+- Strict mode (`"strict": true`)
+- No `any` — use `unknown` and narrow
+- Named exports only (exception: page components for router)
+- Props interfaces: `<Component>Props`, same file as component
+- API response types in `src/types/index.ts`
+
+### Hooks
+
+- Naming: `use<Resource>` (e.g., `useLeads`, `useInterests`)
+- Return typed objects (not tuples) when >2 values
+- Use TanStack Query for server state — no `useEffect` + `useState` for fetching
+
+## Testing
+
+### Backend Structure
+```
+tests/
+├── conftest.py                 # Shared fixtures
+├── fixtures/
+│   ├── sample_leads.json
+│   ├── sample_interests.json
+│   └── sample_html/
+├── test_scrapers/              # One file per scraper
+├── test_services/
+└── test_routers/
+```
+
+### Backend Categories
+
+| Category | Scope | Mocking | Coverage |
+|----------|-------|---------|----------|
+| Unit | Single function | All external | 80% (services, scrapers) |
+| Integration | Service + DB | HTTP only | 80% (services, scrapers) |
+| Router | Request/response cycle | HTTP + external | 70% |
+
+### Backend Rules
+
+| Rule | Rationale |
+|------|-----------|
+| Mock all HTTP in scraper tests | No real network calls in CI |
+| Use `responses` or `pytest-httpx` | Consistent mocking |
+| Test scoring with explicit numerics | Core business logic |
+| Use `pytest-asyncio` with `async_mode = "auto"` | Async router tests |
+| Use `httpx.AsyncClient` for router tests | Full request/response |
+| Fixtures for sample data in `conftest.py` | DRY, consistent test data |
+| HTML snapshots in `fixtures/sample_html/` | Reproducible scraper tests |
+
+### Backend Required Test Cases
+
+#### Scoring (`test_services/test_lead_service.py`)
+
+| Case | Input | Expected |
+|------|-------|----------|
+| Exact match | keyword in raw_text | 100.0 × weight |
+| Partial match | related term | 0 < score < 100 |
+| No match | unrelated text | 0.0 |
+| Multiple interests | several keywords | weighted sum |
+| Inactive interest | `active=False` | ignored |
+
+#### Scrapers (`test_scrapers/test_*.py`)
+
+| Case | Setup | Assertion |
+|------|-------|-----------|
+| Success | Mock 200 + valid HTML | Returns `list[CandidateLead]` |
+| HTTP error | Mock 500 | Returns `[]` |
+| Parse failure | Mock 200 + malformed HTML | Returns `[]`, logs warning |
+| Rate limiting | Two rapid calls | Second call delayed |
+
+#### Routers (`test_routers/test_*.py`)
+
+| Endpoint | Case | Status |
+|----------|------|--------|
+| `GET /leads/today` | Lead exists | 200 |
+| `GET /leads/today` | No lead | 404 |
+| `POST /leads/generate` | Success | 201 |
+| `POST /leads/generate` | Already exists | 409 |
+| `GET /leads` | With pagination | 200, correct `total` |
+
+### Frontend Structure
+
+Tests colocated with components:
+```
+src/components/
+├── LeadCard.tsx
+├── LeadCard.test.tsx
+├── InterestEditor.tsx
+└── InterestEditor.test.tsx
+```
+
+### Frontend Rules
+
+| Rule | Rationale |
+|------|-----------|
+| Use `@testing-library/react` | Standard, no shallow rendering |
+| Mock API modules | No real HTTP |
+| Test all field states | Cover nullables like `contact_hint` |
+| Skip page component tests | Test composed components instead |
+
+### Frontend Required Test Cases
+
+| Component | Cases |
+|-----------|-------|
+| `LeadCard` | All fields rendered; missing `contact_hint`; source badge |
+| `InterestEditor` | Add interest; edit; delete with confirm; weight bounds |
+| `SourceToggle` | Enable/disable; last run status display |
+| `LeadHistory` | List renders; pagination; empty state |
+
+### Coverage Thresholds
+
+| Target | Minimum |
+|--------|---------|
+| `app/services/` | 80% |
+| `app/scrapers/` | 80% |
+| `app/routers/` | 70% |
+
+## Scraper Conventions
+
+| Rule | Detail |
+|------|--------|
+| One class per file | Extends `BaseScraper` |
+| Implement `fetch_candidates(config) -> list[CandidateLead]` | Required method |
+| HTTP via `self._get()` only | Never `requests`, `httpx`, `urllib` directly |
+| Stateless | No DB, no file I/O, no side effects |
+| Config from `ScraperSource.config` | No hardcoded URLs or selectors |
+| Return `[]` on total failure | Don't raise; pipeline handles partial results |
+| Validate config at start | Fail fast on missing keys |
+| Respect robots.txt | `_get()` checks automatically |
+| No Playwright/Selenium | Unless JS required; document in config |
+
+### Logging in Scrapers
+
+| Level | Event |
+|-------|-------|
+| INFO | Starting source, completed with count |
+| DEBUG | Individual page fetch |
+| WARNING | Parse failure, missing element |
+
+## API Conventions
+
+| Aspect | Rule |
+|--------|------|
+| Prefix | `/api/v1/` |
+| List response | `{ "items": [...], "total": n }` |
+| Single response | Flat object |
+| Error response | `{ "detail": "message" }` |
+| Pagination | `?skip=0&limit=20` |
+| Status codes | 200, 201, 404, 409, 422 |
+
+### Router Rules
+
+- Routers validate input, call services, return schemas
+- No ORM queries in routers
+- No business logic in routers
+- Catch domain exceptions, translate to `HTTPException`
+
+## Error Handling
+
+| Layer | Raises | Catches |
+|-------|--------|---------|
+| Scrapers | `ScraperError` | — |
+| `scrape_service` | — | `ScraperError` → log, continue |
+| `lead_service` | `LeadExistsError`, `SourceNotFoundError` | — |
+| Routers | `HTTPException` | Domain exceptions |
+| Frontend | — | TanStack Query handles via `error` |
+
+## Logging
+
+| Level | Use |
+|-------|-----|
+| DEBUG | Detailed flow, page fetches |
+| INFO | Start/end events, selections |
+| WARNING | Parse failures, retries |
+| ERROR | Unrecoverable failures |
+
+### Rules
+
+- Use `structlog`
+- Bind context: `logger.info("event", key=value)`
+- Never log PII
+- Scraper logs include `source_name`
+
+## Git Conventions
+
+| Aspect | Rule |
+|--------|------|
+| Branch naming | `feat/`, `fix/`, `chore/` + short description |
+| Commit messages | Imperative, present tense, 50 char max |
+| Direct commits to main | Forbidden |
+| `.env` | Never committed |
+| Dependencies | Commit lock files when changed |
+| Scope | One logical change per commit |
+
+### Pre-commit Hooks
+
+Config in `.pre-commit-config.yaml`:
+
+- `ruff check` + `ruff format`
+- `detect-secrets`
+
+Run after cloning:
+```bash
+pre-commit install
+```
+
+## CI Requirements
+
+| Check | Command | Pass Criteria |
+|-------|---------|---------------|
+| Backend tests | `pytest` | All pass |
+| Backend coverage | `pytest --cov --cov-fail-under=80` | ≥80% on services/scrapers |
+| Backend lint | `ruff check .` | No errors |
+| Backend format | `ruff format --check .` | No diff |
+| Frontend tests | `npm run test` | All pass |
+| Frontend lint | `npm run lint` | No errors |
+| Secrets | `detect-secrets scan` | None found |
+| Branch | — | Up-to-date with main |
+
+## Prohibited Actions
+
+| Category | Prohibition |
+|----------|-------------|
+| HTTP in scrapers | No `requests.get()`, `httpx.get()`, `urllib` — use `self._get()` |
+| Logic in routers | No ORM queries, no business logic |
+| DB in scrapers | Scrapers receive config, return dataclasses |
+| Raw storage | No HTML, no full page text, no email lists |
+| Excess PII | Name, title, affiliation, URL, contact hint only |
+| Multiple leads/day | Unique constraint enforced |
+| Rate limit bypass | Never disable, even in dev |
+| PII logging | Never at any level |
+| TypeScript `any` | Never |
+| Inline `fetch()` | Use `src/api/` functions |
+| `useEffect` + `useState` for data | Use TanStack Query |
+| Hardcoded scraper config | Use `ScraperSource.config` |
+| Undocumented deps | Update `pyproject.toml` / `package.json` |
+| Push to main | Use branches |
+| Naive datetimes | UTC only in database |
