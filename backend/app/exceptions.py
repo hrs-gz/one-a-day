@@ -15,3 +15,7 @@ class SourceNotFoundError(OADError):
 
 class ScraperError(OADError):
     """Raised when a scraper fails (HTTP error, parse error, timeout)."""
+
+
+class AgentError(OADError):
+    """Raised when an LLM agent fails to produce a valid response."""
