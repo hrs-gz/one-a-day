@@ -12,7 +12,7 @@ import { useInterests } from "../hooks/useInterests";
  */
 export function Algorithm() {
   const navigate = useNavigate();
-  const { data, isLoading } = useInterests();
+  const { data, isLoading, isError } = useInterests();
   const interests = data?.items ?? [];
 
   return (
@@ -35,6 +35,10 @@ export function Algorithm() {
       >
         {isLoading ? (
           <p style={{ color: "var(--ink-faint)", fontSize: "0.9rem" }}>Loading…</p>
+        ) : isError ? (
+          <p style={{ color: "var(--ink-gray)", fontSize: "0.9rem" }}>
+            Could not load interests. Check your connection.
+          </p>
         ) : (
           <TagCloud interests={interests} />
         )}
