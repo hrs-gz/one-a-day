@@ -19,6 +19,8 @@ class Settings(BaseSettings):
     scraper_user_agent: str = "OneADay/1.0 (+https://yoursite.com/bot-info)"
     openai_api_key: str | None = None
     openrouter_api_key: str | None = None
+    gemini_api_key: str | None = None
+    pipeline_mode: str = "agentic"  # "agentic" | "classic"
     sentry_dsn: str | None = None
 
     @property
