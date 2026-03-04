@@ -55,6 +55,7 @@ export function LeadCard({ lead, date }: LeadCardProps) {
         transition: "box-shadow 0.15s ease",
         flex: 1,
         minWidth: 0,
+        maxWidth: 360,
       }}
       onMouseEnter={(e) => {
         (e.currentTarget as HTMLElement).style.boxShadow = "var(--shadow-hover)";

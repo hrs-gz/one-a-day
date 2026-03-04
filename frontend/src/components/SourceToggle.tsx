@@ -9,13 +9,13 @@ export function SourceToggle() {
   const { data, isLoading, isError } = useSources();
   const toggleMutation = useToggleSource();
 
-  if (isLoading) return <p>Loading sources…</p>;
-  if (isError) return <p style={{ color: "red" }}>Failed to load sources.</p>;
+  if (isLoading) return <p style={{ color: "var(--ink-light)" }}>Loading sources…</p>;
+  if (isError) return <p style={{ color: "var(--downvote)" }}>Failed to load sources.</p>;
 
   const sources = data?.items ?? [];
 
   if (sources.length === 0) {
-    return <p style={{ color: "#6b7280" }}>No scraper sources configured.</p>;
+    return <p style={{ color: "var(--ink-light)" }}>No scraper sources configured.</p>;
   }
 
   function handleToggle(source: ScraperSource) {
@@ -24,7 +24,6 @@ export function SourceToggle() {
 
   return (
     <section>
-      <h3 style={{ marginBottom: "1rem" }}>Scraper Sources</h3>
       <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
         {sources.map((source) => (
           <li
@@ -34,7 +33,7 @@ export function SourceToggle() {
               alignItems: "center",
               gap: "0.75rem",
               padding: "0.75rem 0",
-              borderBottom: "1px solid #f3f4f6",
+              borderBottom: "1px solid var(--paper-kraft)",
               opacity: source.enabled ? 1 : 0.5,
             }}
           >
@@ -43,11 +42,11 @@ export function SourceToggle() {
               checked={source.enabled}
               onChange={() => handleToggle(source)}
               disabled={toggleMutation.isPending}
-              title="Enable/disable this source"
+              aria-label={`Toggle ${source.name}`}
             />
             <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 500 }}>{source.name}</div>
-              <div style={{ fontSize: "0.75rem", color: "#6b7280" }}>
+              <div style={{ fontWeight: 500, color: "var(--ink-black)" }}>{source.name}</div>
+              <div style={{ fontSize: "0.75rem", color: "var(--ink-light)" }}>
                 {source.last_run_at
                   ? `Last run: ${formatDate(source.last_run_at.split("T")[0])} — ${statusLabel(source.last_run_status)}`
                   : "Never run"}
@@ -71,18 +70,18 @@ function statusLabel(status: ScraperSource["last_run_status"]): string {
 function StatusBadge({ status }: { status: ScraperSource["last_run_status"] }) {
   if (!status) return null;
   const colors: Record<string, string> = {
-    success: "#059669",
-    error: "#dc2626",
-    skipped: "#d97706",
+    success: "var(--upvote)",
+    error: "var(--downvote)",
+    skipped: "#8c7c5c",
   };
   return (
     <span
       style={{
         fontSize: "0.7rem",
-        background: colors[status] ?? "#6b7280",
+        background: colors[status] ?? "var(--ink-light)",
         color: "#fff",
         padding: "2px 6px",
-        borderRadius: 4,
+        borderRadius: "var(--radius-sm)",
         fontWeight: 600,
       }}
     >

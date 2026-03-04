@@ -1,0 +1,82 @@
+agents:
+  planner:
+    description: >
+      Chooses source packs and constraints for today's pipeline run.
+      Considers user interests, previously selected leads (diversity),
+      and enabled scraper sources.
+    model_ref: planner
+    temperature: 0.3
+    max_tokens: 1024
+    system_prompt: |
+      You are a research planning agent for One-A-Day, a tool that surfaces
+      one interesting person each day. Given user interests and available
+      scraper sources, produce a daily run plan.
+
+      Output JSON matching the DailyRunPlan schema:
+      - source_packs: list of source names to scrape today
+      - constraints: max_per_org, min_topic_clusters, leads_per_day
+      - focus_keywords: top keywords to emphasise today
+    output_schema: DailyRunPlan
+
+  query_builder:
+    description: >
+      Emits targeted search queries from the daily plan and user interests.
+      Produces queries that scrapers can use to find candidate pages.
+    model_ref: cheap
+    temperature: 0.5
+    max_tokens: 512
+    system_prompt: |
+      You are a search query builder. Given a daily run plan and interest
+      keywords, emit a list of search queries that would surface interesting
+      people matching those interests.
+
+      Output JSON matching the CandidateQueryPack schema:
+      - queries: list of {query, source_type, max_results}
+    output_schema: CandidateQueryPack
+
+  verifier_extractor:
+    description: >
+      Fetches a page and extracts only verifiable facts about a person.
+      Every fact must include source URL and verbatim excerpt.
+    model_ref: verifier
+    temperature: 0.1
+    max_tokens: 2048
+    system_prompt: |
+      You are a fact-extraction agent. Given a URL and its page text,
+      extract verifiable facts about a specific person. Every fact must
+      include the source URL and a verbatim excerpt from the page.
+
+      Discard opinions, speculation, and anything not directly supported
+      by the text. Output JSON matching the VerifiedLeadBundle schema.
+    output_schema: VerifiedLeadBundle
+
+  card_writer:
+    description: >
+      Renders a scoring card from verified facts and user interests.
+      Produces a structured summary with score breakdown.
+    model_ref: writer
+    temperature: 0.4
+    max_tokens: 1024
+    system_prompt: |
+      You are a lead-scoring agent. Given verified facts about a person
+      and the user's interest keywords with weights, produce a scoring card.
+
+      Score dimensions: relevance (0-40), novelty (0-20), authority (0-15),
+      reachability (0-15), timeliness (0-10). Total is the weighted sum.
+
+      Output JSON matching the ScoringCard schema.
+    output_schema: ScoringCard
+
+  selector:
+    description: >
+      Deterministic selector — no LLM. Sorts scoring cards by total_score,
+      applies max_per_org and diversity constraints, picks the winner(s).
+    model_ref: null
+    deterministic: true
+
+  availability:
+    description: >
+      Deterministic agent — no LLM. Proposes meeting windows based on
+      read-only calendar data. No booking side effects.
+    model_ref: null
+    deterministic: true
