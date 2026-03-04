@@ -63,6 +63,7 @@ const rowStyle: React.CSSProperties = {
   alignItems: "stretch",
   justifyContent: "center",
   padding: "0 1rem",
+  width: "100%",
 };
 
 function SkeletonCard() {
