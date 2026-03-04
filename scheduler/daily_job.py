@@ -15,8 +15,10 @@ import structlog
 
 # Ensure backend app is importable when run from project root
 import os
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "backend"))
 
+from app.config import settings
 from app.database import SessionLocal
 from app.exceptions import LeadExistsError
 from app.services import lead_service, scrape_service
@@ -48,8 +50,28 @@ def run(force: bool = False) -> None:
             db.delete(existing)
             db.commit()
 
-        logger.info("daily_job_start", date=str(today), force=force)
+        logger.info(
+            "daily_job_start",
+            date=str(today),
+            force=force,
+            pipeline_mode=settings.pipeline_mode,
+        )
 
+        if settings.pipeline_mode == "agentic":
+            from app.services.agentic_pipeline_service import (
+                run_agentic_pipeline,
+            )
+
+            leads = run_agentic_pipeline(db)
+            logger.info(
+                "daily_job_complete",
+                date=str(today),
+                pipeline="agentic",
+                leads_created=len(leads),
+            )
+            return
+
+        # Classic pipeline (default)
         candidates = scrape_service.run_all_scrapers(db)
         if not candidates:
             logger.warning("no_candidates_found", date=str(today))
@@ -66,6 +88,7 @@ def run(force: bool = False) -> None:
         logger.info(
             "daily_job_complete",
             date=str(today),
+            pipeline="classic",
             lead_id=lead.id,
             name=lead.name,
             source=lead.source_type,

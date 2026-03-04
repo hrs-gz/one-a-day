@@ -64,7 +64,7 @@ export function DatePicker({ value, onSelect, onClose }: DatePickerProps) {
         backgroundColor: "rgba(44,44,44,0.3)",
         zIndex: 100,
         display: "flex",
-        alignItems: "flex-end",
+        alignItems: "center",
         justifyContent: "center",
       }}
     >
@@ -73,7 +73,7 @@ export function DatePicker({ value, onSelect, onClose }: DatePickerProps) {
         onClick={(e) => e.stopPropagation()}
         style={{
           backgroundColor: "var(--paper-cream)",
-          borderRadius: "var(--radius-lg) var(--radius-lg) 0 0",
+          borderRadius: "var(--radius-lg)",
           boxShadow: "var(--shadow-picker)",
           padding: "1.5rem",
           width: "100%",
