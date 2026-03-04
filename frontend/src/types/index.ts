@@ -8,7 +8,8 @@ export type SourceType =
   | "news"
   | "personal"
   | "local_news"
-  | "rss";
+  | "rss"
+  | "substack";
 
 export interface Lead {
   id: number;

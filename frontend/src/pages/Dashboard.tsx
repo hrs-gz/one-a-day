@@ -21,7 +21,7 @@ export function Dashboard() {
   const [selectedDate, setSelectedDate] = useState(todayIso);
   const [pickerOpen, setPickerOpen] = useState(false);
 
-  const { data: leads = [], isLoading } = useLeadsByDate(selectedDate);
+  const { data: leads = [], isLoading, isError } = useLeadsByDate(selectedDate);
 
   return (
     <div
@@ -41,7 +41,22 @@ export function Dashboard() {
           padding: "1.5rem 0",
         }}
       >
-        <LeadCardRow leads={leads} isLoading={isLoading} date={selectedDate} />
+        {isError ? (
+          <div
+            style={{
+              flex: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "var(--ink-gray)",
+              fontSize: "0.9rem",
+            }}
+          >
+            Could not load leads. Check your connection.
+          </div>
+        ) : (
+          <LeadCardRow leads={leads} isLoading={isLoading} date={selectedDate} />
+        )}
       </div>
 
       {/* Footer */}
